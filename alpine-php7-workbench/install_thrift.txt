@@ -1,0 +1,90 @@
+首先需要在电脑上安装thrift,
+
+编译Thrift的IDL编译器
+git clone https://git-wip-us.apache.org/repos/asf/thrift.git
+cd thrift
+./bootstrap.sh
+./configure --with-lua=no
+make
+sudo make install
+
+然后需要创建一个thrift文件，我这里创建了一个用户相关的文件user.thrift,具体内容如下：
+namespace php UserModule  
+  
+struct User {  
+    1:optional i64 id,  
+    2:required string username,  
+    3:optional string email,  
+    4:optional string password,  
+    5:optional i32   age,  
+    6:optional string tel  
+}
+
+exception InvalidException {  
+    1:i32 code,  
+    2:string message  
+}  
+  
+enum UserStatus {  
+    DefaultValue=0, //新创建未认证  
+    isAuthed=1,     //已认证  
+    isDeleted=2     //已删除  
+}  
+  
+struct InParamsUser {  
+    1:optional string  username,  
+    2:optional i32     age,  
+    3:optional string  email,  
+    4:optional string  tel,  
+    5:optional i32     status = UserStatus.DefaultValue,  
+    6:optional i32     page,  
+    7:optional i32     pageSize  
+}  
+  
+struct OutputParamsUser {  
+    1:i32 page,  
+    2:i32 pageSize,  
+    3:i32 totalNum,  
+    4:list<User> records   
+}
+
+service LoginService {  
+    User Login(1:string username, 2:string pwd) throws (1:InvalidException ex),  
+    User Register(1:string username,2:string pwd) throws (1:InvalidException ex),  
+    string getCheckCode(1:string sessionid) throws (1:InvalidException ex),  
+    string verifyCheckCode(1:string sessionid, 2:string checkcode) throws (1:InvalidException ex)  
+}  
+  
+service UserService {  
+    User Detail(1:i64 id) throws (1:InvalidException ex),  
+    User Update(1:User user) throws (1:InvalidException ex),  
+    OutputParamsUser search(1:InParamsUser inParams),  
+    map<i32,string> getAllStatus()  
+}  
+
+    基本类型：
+        bool：布尔值，true 或 false，对应 Java 的 boolean
+        byte：8 位有符号整数，对应 Java 的 byte
+        i16：16 位有符号整数，对应 Java 的 short
+        i32：32 位有符号整数，对应 Java 的 int
+        i64：64 位有符号整数，对应 Java 的 long
+        double：64 位浮点数，对应 Java 的 double
+        string：utf-8编码的字符串，对应 Java 的 String
+    结构体类型：
+        struct：定义公共的对象，类似于 C 语言中的结构体定义，在 Java 中是一个 JavaBean
+    容器类型：
+        list：对应 Java 的 ArrayList
+        set：对应 Java 的 HashSet
+        map：对应 Java 的 HashMap
+    异常类型：
+        exception：对应 Java 的 Exception
+    服务类型：
+        service：对应服务的类
+
+然后根据该thrift文件生成相应的service、types文件:(cd lnmp/www/thrift_test/thrift_gen/)
+
+	thrift -gen php:server user.thrift
+
+如果php的客户端与服务端分开部署的话，需要执行以下命令： 
+
+    thrift -gen php user.thrift 
